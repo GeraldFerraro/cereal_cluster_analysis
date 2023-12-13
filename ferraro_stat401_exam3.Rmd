@@ -1,0 +1,164 @@
+---
+title: "Exam 3"
+author: "Gerald Ferraro"
+date: "2023-12-13"
+output: 
+  html_document:
+    toc: TRUE
+---
+
+***Use tidyverse and select to choose columns Name, Rating, Sugars, Fiber, Protein, Fat. Call this
+data frame cereal_data_sub.***
+
+```{r}
+library(tidyverse)
+library(knitr)
+library(GGally)
+library(broom)
+library(gridExtra)
+#library(olsrr)
+#library(pander)
+
+# new one for cluster analysis
+library(cluster)
+
+#library stats for hclust()
+library(factoextra)
+cereals_data_sub <- read_csv("cereals (1).csv")
+cereals_data_sub <- as.data.frame(cereals_data_sub)
+cereals_data_sub <- cereals_data_sub %>%
+  select(Name, Rating, Sugars, Fiber, Protein, Fat)
+
+```
+
+***• Add rownames by rownames(cereal_data_sub) <- cereal_data_sub$Name.***
+
+```{r}
+
+rownames(cereals_data_sub) <- cereals_data_sub$Name
+
+```
+
+***• use na.omit to remove all rows that have a missing data value, call this data frame cereal_data_no_na***
+
+```{r}
+cereals_data_no_na <- na.omit(cereals_data_sub)
+
+```
+
+***• compute z-scores of the data frame cereal_data_no_na without the Name and Rating column, call this data frame cereal_data_z***
+
+```{r}
+
+cereals_data_subset <- cereals_data_no_na[, !(names(cereals_data_no_na) %in% c("Name", "Rating"))]
+cereals_data_z <- scale(cereals_data_subset)
+
+```
+
+***• Use cereal_data_z to construct clusters using the k-means method (do this for k=2, k=3, k=4)***
+
+```{r}
+km2 <- kmeans(cereals_data_z, centers = 2)
+km2
+
+km3 <- kmeans(cereals_data_z, centers = 3)
+km3
+
+km4 <- kmeans(cereals_data_z, centers = 4)
+km4
+
+```
+Z***• Which cluster size do you prefer? Explain using k-means output.***
+
+The preferred cluster size would be k = 4. The 4 clusters allows for a sum of squares between / sum of squares total of 57.2%. This is the highest of the three different cluster amounts. This is a little of 10% higher than the three cluster option and more than double the two cluster option.The goal of clustering is to minimize the variation within cluster while maximizing the variation between clusters. For the k's available in this assignment, k = 4 is the best option.
+
+***• Determine how many cereals are assigned to each cluster. Do this for k-means with k=2, k=3 and k=4.***
+
+```{r}
+km4$size
+km3$size
+km2$size
+
+```
+
+When k = 4 the cluster sizes are:
+
+Cluster One: 19
+
+Cluster two: 30
+
+Cluster Three: 5
+
+Cluster Four: 22
+
+When k = 3 the cluster sizes are:
+
+Cluster One: 24
+
+Cluster Two: 31
+
+Cluster Three: 21
+
+When k = 2 the cluster sizes are:
+
+Cluster One: 39
+Cluster Two: 37
+
+***• Add the cluster (vector) each cereal is assigned to the data frame cereal_data_no_na.***
+
+```{r}
+cereals_data_no_na <- cereals_data_no_na %>%
+  mutate(Cluster = km4$cluster)
+
+cereals_data_no_na$Cluster
+```
+
+***• Determine which cluster each cereal belongs to and see if you can determine a pattern for each cluster based on the which cereals are in a cluster and the centers of each cluster.***
+
+Using the cluster assignments and the centers of each cluster there appears to be a pattern by cereal contents.
+
+The first cluster is assigned to higher sugar, lower fiber and protein, and about average fat content cereals such as Lucky Charms, Trix, and Frosted Flakes.
+
+The second cluster is lower in sugar but also lower in fiber, protein and fat. This includes Bran Flakes, Bran Chex, and Cream of Wheat.
+
+The third cluster is assigned to the lowest average sugar cereals that are higher in fiber and protein. This cluster also has slightly lower than average fat. This cluster includes brands such as All-Bran, Total Corn Flakes, and 100% Bran. This cluster is the smallest. 
+
+The fourth and final cluster is moderate in sugar, fiber, and protein but the main differentiating factor is the higher fat content. This cluster includes brands such as Almond Delight, Apple Cinnamon Cheerios, and Raisin Bran.
+
+***• Use cereal_data_no_na to plot histograms of Ratings. Use a separate histogram for each cluster, try facet_grid with ggplot. Do this for each k-means for k=2, k=3, and k=4 separately.***
+
+```{r}
+ggplot(cereals_data_no_na, aes(x=Rating)) +
+  geom_histogram(binwidth = 4, fill = "blue", color = "black") +
+  facet_grid(. ~ Cluster, scales = "free_y") +
+    labs(title = "Histograms of Ratings",
+         x = "Rating",
+         y = "Frequency")
+
+
+cereals_data_no_na <- cereals_data_no_na %>%
+  mutate(Cluster3 = km3$cluster)
+
+cereals_data_no_na <- cereals_data_no_na %>%
+  mutate(Cluster2 = km2$cluster)
+
+ggplot(cereals_data_no_na, aes(x=Rating)) +
+  geom_histogram(binwidth = 4, fill = "red", color = "black") +
+  facet_grid(. ~ Cluster3, scales = "free_y") +
+    labs(title = "Histograms of Ratings",
+         x = "Rating",
+         y = "Frequency") 
+
+
+ggplot(cereals_data_no_na, aes(x=Rating)) +
+  geom_histogram(binwidth = 4, fill = "green", color = "black") +
+  facet_grid(. ~ Cluster2, scales = "free_y") +
+    labs(title = "Histograms of Ratings",
+         x = "Rating",
+         y = "Frequency") 
+```
+
+***Do the clusters provide a classification of cereal based on Rating?***
+
+The clusters in this scenario to not seem to tell the whole story of classification based on Rating. The some clusters such as cluster number one when k = 4 does a good job of picking brands only under the rating level of 40. However, when looking at the second cluster it is comprised of moderate and high rated cereals. The fourth cluster has a variety of ratings levels in the 30's all the way to almost 80. This makes sense when we take the results of the k-means model from k = 4 and think about the sum of squares between divided by the sum of squares total. The model only predicted 57% of the difference. How the ratings were developed may have certain weights for certain nutritional contents that may differ from the model. There is no clear distinction between the clusters providing a classification of cereal based on Ratings.
+
